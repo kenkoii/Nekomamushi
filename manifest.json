@@ -16,5 +16,8 @@
         "tabs",
         "contextMenus",
         "storage"
-    ]
+    ],
+    "icons": {
+        "16": "icon.png"
+    }
 }
