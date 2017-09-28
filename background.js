@@ -2,9 +2,11 @@
 chrome.runtime.onInstalled.addListener(function() {
     var context = "selection";
     var title = "Eigo Monogatari / 英語物語";
-    chrome.contextMenus.create({"title": title, "contexts": [context], "id": "root"});
+    chrome.contextMenus.create({"title": title,
+                                "contexts": [context],
+                                "id": "root"});
     chrome.contextMenus.create({
-                                "title": "Add to Favorites",
+                                "title": "Add 「 %s 」 to Favorites",
                                 "contexts": [context],
                                 "parentId": "root",
                                 "id": "child"
@@ -17,9 +19,11 @@ chrome.contextMenus.onClicked.addListener(onClickHandler);
 // The onClicked callback function.
 function onClickHandler(info, tab) {
     // var url = "https://diktoapi.appspot.com/api/v1/favorite";
-    var url = "http://localhost:8080/api/v1/favorite";
+    var url = "https://2-dot-diktoapi.appspot.com/api/v1/favorite"
+    // var url = "http://localhost:8080/api/v1/favorite";
     var sText = info.selectionText;
     var data = {id: sText, userid: "20001", password: "3829"};
+    console.log("Add Favorite button clicked!");
     $.ajax({
         url:url,
         type:"POST",

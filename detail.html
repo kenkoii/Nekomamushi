@@ -1,0 +1,267 @@
+
+<html lang="en" style="height: 920px; width: 768px;">
+    <head>
+        <title>Eigo Monogatari extension</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="css/styles.css" rel="stylesheet">
+        <link rel="stylesheet" href="fonts/font-awesome.min.css"> 
+        <script src="js/jquery-3.2.0.min.js"></script>
+        <script src="js/knockout-3.4.2.js"></script>
+        <script src="js/timeago.min.js"></script>
+        <script src="js/hammer.min.js"></script>
+        <script src="js/howler.core.min.js"></script>
+        <script src="js/main.js"></script>
+        <script src="js/detail.js"></script>
+        <script src="popup.js"></script>
+    </head>
+    
+    <body>
+            <ul class="sandmswitch" data-bind="visible: user()!=null && isFavorited()">
+                <li><img src="img/studying.png" alt=""></li>
+                <li>
+                    <label class="swtch" data-bind="click: toggleStatus, css:{active: isMastered}">
+                    <input type="checkbox" name="">
+                </label>
+                </li>
+                <li><img src="img/mastered.png" alt=""></li>
+            </ul>
+        
+            <section *ngIf="!load">
+                <div class="section fade-in-up">
+                    <div class="container fit">
+                        <div class="card fit ">
+                            <header>
+                                <h2 class="text center white no-margin" data-bind="text: wordObj().text"><a (click)="playAudio()" style="display: initial"><i class="text white fa fa-volume-up"></i></a></h2>
+                                <p class="text center sunflower no-margin"><em data-bind="text: formattedPronunciation"></em> •
+                                    <strong data-bind="text: wordObj().translation"></strong></p>
+                            </header>
+                            <div class="body">
+                                <div class="text-group">
+                                    <h4 class="text white no-margin">M E A N I N G</h4>
+                                    <div data-bind="foreach: wordObj().definition">
+                                        <p class="text silver"><span class="text peterriver" data-bind="text: partOfSpeech">part of speech</span> • <span data-bind="text: definition">definition</span></p>
+                                    </div>
+                                </div>
+                                <div class="text-group">
+                                    <h4 class="text white no-margin">E X A M P L E</h4>
+                                    <div data-bind="foreach: wordObj().examples">
+                                        <p class="text silver"><span class="text white"> • </span><span data-bind="text: $rawData"></span></p>
+                                    </div>
+                                </div>
+                                <div class="text-group">
+                                    <h4 class="text white no-margin">S Y N O N Y M</h4>
+                                    <p class="text silver" data-bind="foreach: wordObj().synonyms"><span data-bind="text: $rawData + ', '" [routerLink]="['/','word',synonym]"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        
+            <ul class="bottom-actions">
+                <li data-bind="visible: user()==null || user().error"></li>
+                <li data-bind="visible: isFavorited() && user()!=null && !user().error"><a class="button circle settings fav"  data-bind="click: togglePromptFave" (click)="togglePromptFave()" type="button" name="button"> 削除<!--<i class="fa fa-trash" aria-hidden="true"></i>--></a></li>
+                <li data-bind="visible: !isFavorited() && user()!=null && !user().error"><a class="button circle settings fav" data-bind="click: toggleFavorite" (click)="favoriteWord()" type="button" name="button"> 登録<!--<i class="fa fa-plus" aria-hidden="true"></i>--></a></li>
+                <!--<li *ngIf="(name | async) == 'Detail'"><a [routerLink]="['/',(user$ | async).id,(user$ | async).password,'list']" class="button circle back" type="button" name="button"><img src="../../assets/UI-assets/back-word.png" alt=""></a></li>-->
+                <li><a data-bind="click: goToWordList" class="button circle back" type="button" name="button"><img src="img/back-word.png" alt=""></a></li>
+                <!-- <li data-bind="visible: user()==null"><a (click)="playBackAudio()" href="uniwebview://close" class="button circle back" type="button" name="button"><img src="../../assets/UI-assets/back-word.png" alt=""></a></li> -->
+                <!--<li><a class="button circle settings" (click)="favoriteWord()" type="button" name="button"><i *ngIf="!isFavorited" class="fa fa-plus" aria-hidden="true"></i><i *ngIf="isFavorited" class="fa fa-minus" aria-hidden="true"></i></a></li>-->
+            </ul>
+        
+        
+            <div class="notification" data-bind="css: {active: isPromptFave}" [class.active]="isPromptFave">
+                <p class="text clouds">この言葉を削除してもよろしいですか`?</p>
+                <ul class="action">
+                    <li>
+                        <!--<button type="button" name="button" class="button normal del" (click)="unfavoriteWord()"><i class="fa fa-check"></i></button>-->
+                        <button type="button" name="button" class="button normal del" data-bind="click: unfavoriteWord" (click)="unfavoriteWord()">YES</button>
+                    </li>
+                    <li>
+                        <!--<button type="button" name="button" class="button danger cncl" (click)="togglePromptFave()"><i class="fa fa-remove"></i></button>-->
+                        <button type="button" name="button" class="button danger cncl" data-bind="click: togglePromptFave" (click)="togglePromptFave()">NO</button>
+                    </li>
+                </ul>
+            </div>
+        
+    </body>
+    <style>
+        .r {
+            left: 65px !important;
+            padding-top: 10px;
+        }
+        body{
+            height: 667px !important;
+            width: 375px !important;
+            overflow: hidden;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: -300%;
+            transition: all 0.3s ease-in-out;
+            background: #614138;
+            border: 5px solid #d9ab7e;
+            padding: 20px 15px;
+            width: 100%;
+            z-index: 110;
+        }
+
+        .notification.active {
+            bottom: 0;
+        }
+
+        .notification p {
+            text-align: center;
+        }
+
+        .notification .action {
+            display: block;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+
+        .notification .action:after {
+            content: " ";
+            display: block;
+            clear: both;
+        }
+
+        .notification .action li {
+            width: 50%;
+            float: left;
+            display: inline-block;
+            padding: 0px 10px;
+        }
+
+        .notification .action li button {
+            margin: 0;
+            width: 100%;
+        }
+
+        .del,
+        .cncl {
+            background: url(img/notification-button.png);
+            background-size: 100% 100%;
+            background-position: center;
+            box-shadow: none;
+            margin: 0;
+            border-radius: 3px;
+        }
+
+        .fav {
+            background: url(img/back-button.png) !important;
+            background-size: 77px 100% !important;
+            background-position: center;
+            width: 77px !important;
+            border-radius: 0px !important;
+            box-shadow: none !important;
+        }
+
+        .close {
+            box-shadow: none !important;
+            background: url(img/button_close.png);
+            background-position: center;
+            background-size: 100% 100%;
+            color: transparent;
+            margin: 0 auto !important;
+        }
+
+        .back {
+            box-shadow: none !important;
+            background: url(img/back-button.png) !important;
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: transparent;
+            height: 50px !important;
+            width: 100px !important;
+            margin: 0 auto !important;
+            border-radius: 3px !important;
+            box-shadow: none !important;
+        }
+
+        .back img {
+            height: 25px;
+            width: 55px;
+        }
+
+        .settings {
+            background: url(img/button_green.png);
+            background-size: 100% 100%;
+            background-position: center;
+            box-shadow: none;
+            margin: 0 auto !important;
+            border-radius: 3px;
+        }
+
+        .card {
+            background: #1b4d33;
+            border: 5px solid #0d2b1f !important;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .container {
+            height: 100%;
+        }
+
+        .sandmswitch {
+            margin: 0px auto;
+            padding: 0;
+            width: 100%;
+            position: absolute;
+            top: 43px;
+            background: #d9ab7e;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+
+        .sandmswitch li {
+            height: 48px !important;
+            padding: 10px 0px;
+            vertical-align: center;
+            text-align: center;
+            color: #fff;
+            width: 33.33%;
+            float: left;
+            display: inline-block;
+        }
+
+        .sandmswitch li img {
+            width: 60px;
+            height: auto;
+        }
+
+        .button {
+            margin: 0;
+        }
+
+        .text-group {
+            margin: 30px 0px;
+        }
+
+        .text-group p {
+            margin: 20px 0px;
+        }
+
+        .grab-center {
+            position: relative;
+            right: 0;
+            left: 0;
+            margin: 0 auto;
+            width: 85px;
+            height: 50px;
+        }
+
+        @media (max-width: 1200px) {
+            .card {
+                border: 0;
+                border-radius: 0px;
+            }
+        }
+    </style>
+</html>
+
+    

@@ -1,12 +1,197 @@
-<html lang="en" style="height: 350px; width: 250px;">
+<html lang="en" style="height: 920px; width: 768px;">
     <head>
         <title>Eigo Monogatari extension</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link href="css/styles.css" rel="stylesheet">
+        <link rel="stylesheet" href="fonts/font-awesome.min.css"> 
         <script src="js/jquery-3.2.0.min.js"></script>
+        <script src="js/knockout-3.4.2.js"></script>
+        <script src="js/timeago.min.js"></script>
+        <script src="js/hammer.min.js"></script>
+        <script src="js/howler.core.min.js"></script>
+        <script src="js/main.js"></script>
+        <script src="js/list.js"></script>
+        <script src="popup.js"></script>
     </head>
+
+    <body>
+        <div style="display: none" data-bind="visible: true">
+                <!-- <a id="uniwebview" href="uniwebview://success"></a> -->
+                <nav class="navigation fixed top fit no-border" >
+                <ul class="nav">
+                    <li data-bind="if: selected()=='favorites'" class="title"><a class="xlink"><img class="img-title" src="/img/Mytango.png" alt=""></a></li>
+                    <li data-bind="if: selected()=='settings'" class="title"><a class="xlink"><img class="img-title" src="/img/setting.png" alt=""></a></li> 
+                </ul>
+                </nav>
+                <ul class="bottom-actions">
+                <li></li>
+                <!--<li *ngIf="(name | async) == 'Favorites' || (name | async) == 'Splash'"><a href="uniwebview://close" class="button circle close" type="button" name="button">.</a></li>-->
+                <li data-bind="visible: selected()=='favorites'"><a data-bind="click: close" class="button circle close" type="button" name="button">.</a></li>
+                <li data-bind="visible: selected()=='favorites'"><a data-bind="click: switchWindow" (click)="playClickSound()" [routerLink]="['settings']" class="button circle settings" type="button" name="button"><i class="fa fa-cog" aria-hidden="true"></i></a></li>
+                <li data-bind="visible: selected()=='settings'"><a data-bind="click: switchWindow" class="button circle back" type="button" name="button"><img src="/img/back-word.png" alt=""></a></li>   
+                </ul>
+            
+                <div class="notification" data-bind="css: {active: isPromptFave}" [class.active]="isPromptFave">
+                    <p class="text clouds"><span data-bind="text: '「' + selectedWord().word + '」'"></span>を削除してもよろしいですか？</p>
+                    <ul class="action">
+                        <li>
+                            <!--<button type="button" name="button" class="button normal del" (click)="unfavoriteWord()"><i class="fa fa-check"></i></button>-->
+                            <button type="button" name="button" class="button normal del" data-bind="click: unfavoriteWord" (click)="unfavoriteWord()">YES</button>
+                        </li>
+                        <li>
+                            <!--<button type="button" name="button" class="button danger cncl" (click)="togglePromptFave()"><i class="fa fa-remove"></i></button>-->
+                            <button type="button" name="button" class="button danger cncl" data-bind="click: togglePromptFave" (click)="togglePromptFave()">NO</button>
+                        </li>
+                    </ul>
+                </div>
+            
+                <div data-bind="if: selected() == 'favorites'">
+                    <section >
+                        <ul class="tab scroll">
+                            <li data-bind="css: { active : isActive('mastered') }">
+                                <a data-bind="click: function() { setActiveTab('mastered') }"><img src="/img/mastered.png" alt=""><span data-bind="text: mastered().length">0</span></a>
+            
+                            </li>
+                            <li data-bind="css: { active : isActive('studying') }">
+                                <a data-bind="click: function() { setActiveTab('studying') }"><img src="/img/studying.png" alt=""><span data-bind="text: studying().length">0</span></a>
+            
+                            </li>
+                        </ul>
+                        <div class="hidden" data-bind="css: { active : isActive('mastered') }">
+                            <div class="section">
+                                <div class="container fit">
+                                    <ul id="mastered" class="list" data-bind="event: {scroll: onStudyingScroll}"
+                                        infinite-scroll [infiniteScrollDistance]="2" [infiniteScrollThrottle]="100" (scrolled)="onStudyingScroll()"
+                                        [scrollWindow]="false">
+                                        <li class="item animate fade-in-up" data-bind="foreach: mastered">
+                                            <div #div style="padding: 0; background-color: #0f3320" class="content">
+                                                <div data-bind="panmove: onPan,
+                                                                panend: onPanEnd,
+                                                                element: el,
+                                                                style: { marginLeft: x, marginRight: x*-1, opacity: alpha},
+                                                                css: {single: !$parent.user().settings.showTranslation},
+                                                                click: goToWord" 
+                                                                class="detail">
+                                                    <h4 class="text white no-margin"><span class="text white word" style="font-family: 'Poppins Bold', sans-serif; font-size: 19px;" data-bind="text: word"></span>&nbsp;<span *ngIf="word && (settings | async).showPronunciation" data-bind="if: $parent.user().settings.showPronunciation"><span class="text sunflower" data-bind="text: formattedPronunciation"></span></span>
+                                                        <span data-bind="if: $parent.user().settings.showTime"><span class="text sunflower" *ngIf="(settings | async).showTime"> • <span class="text sunflower" data-bind="text: timeCreated">1m</span></span></span>
+                                                    </h4>
+                                                    <p class="text white no-margin">
+                                                        <span data-bind="if: $parent.user().settings.showTranslation"><span *ngIf="word && (settings | async).showTranslation" data-bind="text: wordObj().translation"></span></span>
+                                                    </p>
+                                                    <div data-bind="style: {right: actX }" class="action">
+                                                        <ul>
+                                                            <li data-bind="click: playAudio, clickBubble: false"><a><i class="fa fa-volume-up text text size-normal white" aria-hidden="true"></i></a></li>
+                                                            <li data-bind="click: $parent.togglePromptFave, clickBubble: false"><a><i class="fa fa-remove text text size-normal alizarin" aria-hidden="true"></i></a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hidden" data-bind="css: { active : isActive('studying') }">
+                            <div class="section">
+                                <div class="container fit">
+                                    <ul id="studying" class="list" data-bind="event: {scroll: onStudyingScroll}"
+                                        infinite-scroll [infiniteScrollDistance]="2" [infiniteScrollThrottle]="100" (scrolled)="onStudyingScroll()"
+                                        [scrollWindow]="false">
+                                        <li class="item animate fade-in-up" data-bind="foreach: studyingBuffer">
+                                            <div #div style="padding: 0; background-color: #0f3320" class="content">
+                                                <div data-bind="panmove: onPan, 
+                                                                panend: onPanEnd, 
+                                                                element: el, 
+                                                                style: { marginLeft: x, marginRight: x*-1, opacity: alpha}, 
+                                                                css: {single: !$parent.user().settings.showTranslation},
+                                                                click: goToWord, clickBubble: false" 
+                                                    (click)="playClickAudio()" class="detail" [routerLink]="['/','word',favorite.word]" [ngClass]="{'single': !(settings | async).showTranslation}">
+                                                    <h4 class="text white no-margin"><span class="text white" style="font-family: 'Poppins Bold', sans-serif; font-size: 19px;" data-bind="text: word"></span>&nbsp;<span *ngIf="word && (settings | async).showPronunciation" data-bind="if: $parent.user().settings.showPronunciation"><span class="text sunflower" data-bind="text: formattedPronunciation"></span></span>
+                                                        <span data-bind="if: $parent.user().settings.showTime"><span class="text sunflower" *ngIf="(settings | async).showTime"> • <span class="text sunflower" data-bind="text: timeCreated">1m</span></span><span>
+                                                    </h4>
+                                                    <p class="text white no-margin">
+                                                        <span data-bind="if: $parent.user().settings.showTranslation"><span data-bind="text: wordObj().translation"></span></span>
+                                                    </p>
+                                                    <div data-bind="style: {right: actX }" class="action">
+                                                        <ul>
+                                                            <li data-bind="click: playAudio, clickBubble: false"><a><i class="fa fa-volume-up text text size-normal white" aria-hidden="true"></i></a></li>
+                                                            <li data-bind="click: $parent.togglePromptFave, clickBubble: false"><a><i class="fa fa-remove text text size-normal alizarin" aria-hidden="true"></i></a></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                <div data-bind="if: selected() == 'settings'">
+                    <section>
+                    <div class="section fade-in-up">
+                        <div class="container">
+                        <ul class="list">
+                            <li class="item ">
+                                <div class="detail single">
+                                <p class="text white no-margin">AからZまで並べ替え</p>
+                                </div>
+                                <div class="action btn">
+                                <label class="swtch" data-bind="click: toggleSort, css: {active: user().settings.sortAZ}">
+                                    <input type="checkbox" name="">
+                                </label>
+                                </div>
+                            </li>
+                            <li class="item">
+                                <div class="detail single">
+                                <p class="text white no-margin">発音を表示する</p>
+                                </div>
+                                <div class="action btn">
+                                <label class="swtch" data-bind="click: togglePronunciation, css: {active: user().settings.showPronunciation}">
+                                    <input type="checkbox" name="">
+                                </label>
+                                </div>
+                            </li>
+                            <li class="item">
+                                <div class="detail single">
+                                <p class="text white no-margin">翻訳を表示する</p>
+                                </div>
+                                <div class="action btn">
+                                <label class="swtch" data-bind="click: toggleTranslation, css: {active: user().settings.showTranslation}">
+                                    <input type="checkbox" name="">
+                                </label>
+                                </div>
+                            </li>
+                            <li class="item">
+                                <div class="detail single">
+                                <p class="text white no-margin">登録時刻を表示する</p>
+                                </div>
+                                <div class="action btn">
+                                <label class="swtch"  data-bind="click: toggleTime, css: {active: user().settings.showTime}">
+                                    <input type="checkbox" name="">
+                                </label>
+                                </div>
+                            </li>
+                            </ul>
+                        </div>
+                    </div>
+                    </section>
+                </div>
+            
+            </div>
+    </body>
     <style>
+        body {
+        margin: 0;
+        height: 667px !important;
+        width: 375px !important;
+        background: url(/img/backdrop.png);
+        background-position: center;
+        background-attachment: fixed;
+        background-size: 100% 100%;
+        font-family: 'Open Sans', sans-serif; }
+
         .input-group{
             padding: 10px;
         }
@@ -20,28 +205,288 @@
             width: 100%;
             height: auto;
         }
-    </style>
-    <body style="height: 100%; width: 100%;">
-        <section>
-            <div class="container">
-                <div class="row">
-                    <div class="card">
-                        <header>
-                            <img src="img/EigoMonogatariLogo2.png">
-                        </header>
-                        <div class="body">
-                            <input class="input fit normal" type="text" name="" value="" placeholder="User ID">
-                            <input class="input fit normal" type="text" name="" value="" placeholder="Password">
-                        </div>
-                        <footer>
-                            <button class="button fit normal no-margin" type="button" name="button"><span class="text size-normal"><i class="fa fa-check" aria-hidden="true"></i> Login</span></button>
-                        </footer>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </body>
-    <script>
 
-    </script>
+        .container {
+        height: 100% !important;
+    }
+
+    .list {
+        height: 100%;
+    }
+
+    .del,
+    .cncl {
+        background: url(/img/notification-button.png);
+        background-size: 100% 100%;
+        background-position: center;
+        box-shadow: none;
+        margin: 0;
+        border-radius: 3px;
+    }
+
+    .del,
+    .cncl {
+        background: url(/img/notification-button.png);
+        background-size: 100% 100%;
+        background-position: center;
+        box-shadow: none;
+        margin: 0;
+        border-radius: 3px;
+    }
+
+    .bottom-actions .button{
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    .notification {
+        position: fixed;
+        bottom: -300%;
+        transition: all 0.3s ease-in-out;
+        background: #614138;
+        border: 5px solid #d9ab7e;
+        padding: 20px 15px;
+        width: 100%;
+        z-index: 110;
+    }
+
+    .notification.active {
+        bottom: 0;
+    }
+
+    .notification p {
+        text-align: center;
+    }
+
+    .notification .action {
+        display: block;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+    }
+
+    .notification .action:after {
+        content: " ";
+        display: block;
+        clear: both;
+    }
+
+    .notification .action li {
+        width: 50%;
+        float: left;
+        display: inline-block;
+        padding: 0px 10px;
+    }
+
+    .notification .action li button {
+        margin: 0;
+        width: 100%;
+    }
+
+    .tab {
+        padding: 0;
+        margin: 0;
+        position: fixed;
+        left: 0;
+        top: 61px;
+        width: 100%;
+        z-index: 100;
+        white-space: nowrap;
+    }
+
+    .tab.scroll {
+        overflow-x: auto;
+    }
+
+    .tab li {
+        width: 50%;
+        display: inline-block;
+        text-align: center;
+        padding: 0px;
+        height: 100% !important;
+        float: right;
+    }
+
+    .tab li a {
+        display: block;
+        position: relative;
+        color: #fff;
+        padding: 15px 0px;
+        text-decoration: none;
+        background: #926655;
+        font-family: Poppins, sans-serif;
+        font-size: 13px;
+        margin: 0 10px;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+        position: relative;
+    }
+
+    .tab li a::after {
+        content: " ";
+        display: block;
+        background: #926655;
+        position: absolute;
+        border-top-left-radius: 5px;
+        transform: skewX(-5deg);
+        top: 0;
+        left: -8px;
+        width: 30px;
+        height: 100%;
+    }
+
+    .tab li a::before {
+        content: " ";
+        display: block;
+        background: #926655;
+        position: absolute;
+        border-top-right-radius: 5px;
+        transform: skewX(5deg);
+        top: 0;
+        right: -8px;
+        width: 30px;
+        height: 100%;
+    }
+
+    .tab li a img {
+        width: 50px;
+        height: auto;
+        position: absolute;
+        top: 6px;
+        left: 25%;
+    }
+
+    .tab li span {
+        position: absolute;
+        top: 6px;
+        right: 15px;
+        display: inline-block;
+        border-radius: 3px;
+        padding: 0 10px;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .tab li.active a {
+        position: relative;
+        background: #d9ab7e;
+    }
+
+    .tab li.active a::after,
+    .tab li.active a::before {
+        background: #d9ab7e;
+    }
+    .hidden {
+        display: none;
+        height: 100% !important;
+    }
+
+    .active {
+        display: block !important;
+    }
+
+    .dragged {
+        box-shadow: 0px 0px 230px rgba(255, 255, 255, 0.5) !important;
+        background: #f1c40f;
+    }
+
+    .dragged h4 span {
+        color: #2c3e50;
+    }
+
+    .detail {
+        transition: background 0.3s ease-in-out;
+        box-shadow: none;
+    }
+
+    h4 {
+        vertical-align: middle;
+        white-space: nowrap;
+        width: auto !important;
+    }
+
+    h4 span {
+        font-size: 12px;
+        vertical-align: middle;
+    }
+
+    p {
+        white-space: nowrap;
+    }
+
+    .action {
+        white-space: nowrap;
+    }
+
+    .action li a:hover {
+        background: transparent;
+    }
+
+    .action li a:active {
+        background: rgba(0, 0, 0, 0.4);
+    }
+    /*# end of word list card */
+
+    .title-center {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    text-align: center; }
+
+    nav {
+    background: transparent; }
+
+    .nav {
+    width: 100% !important; }
+
+    .xlink {
+    padding: 16px !important; }
+
+    .title {
+    width: 100%; }
+
+    .close {
+        box-shadow: none !important;
+        background: url(/img/button_close.png) !important;
+        background-position: center !important;
+        background-size: 100% 100% !important;
+        color: transparent;
+        margin: 0 auto !important;
+    }
+
+    .back {
+        box-shadow: none !important;
+        background: url(/img/back-button.png) !important;
+        background-size: 100% 100% !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        color: transparent;
+        height: 50px !important;
+        width: 100px !important;
+        margin: 0 auto !important;
+        border-radius: 3px !important;
+        box-shadow: none !important;
+    }
+
+    .back img {
+        height: 25px;
+        width: 55px;
+    }
+
+    .settings {
+    background: url(/img/button_green.png) !important;
+    background-size: 100% 100% !important;
+    background-position: center !important;
+    padding: 15px 16px !important;
+    box-shadow: none;
+    margin: 0 auto !important;
+    border-radius: 3px; }
+
+    .img-title {
+    display: block;
+    width: 200px;
+    height: auto;
+    margin: 0 auto; }
+    </style>
 </html>
