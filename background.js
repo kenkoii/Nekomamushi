@@ -18,20 +18,30 @@ chrome.contextMenus.onClicked.addListener(onClickHandler);
 
 // The onClicked callback function.
 function onClickHandler(info, tab) {
-    // var url = "https://diktoapi.appspot.com/api/v1/favorite";
-    var url = "https://2-dot-diktoapi.appspot.com/api/v1/favorite"
-    // var url = "http://localhost:8080/api/v1/favorite";
-    var sText = info.selectionText;
-    var data = {id: sText, userid: "20001", password: "3829"};
     console.log("Add Favorite button clicked!");
-    $.ajax({
-        url:url,
-        type:"POST",
-        data:JSON.stringify(data),
-        contentType:"application/json; charset=utf-8",
-        dataType:"json",
-        success: function(){
-            alert('You added ' + sText + ' to your favorites!');
+    
+    // var url = "https://2-dot-diktoapi.appspot.com/api/v1/favorite"
+    var sText = info.selectionText;
+    chrome.storage.sync.get("loggedInUser",function(result){
+        console.log('loggedInUser' in result);
+        if('loggedInUser' in result) {
+            
+            var data = {id: sText, userid: result["loggedInUser"].id + "", password: result["loggedInUser"].password + ""};
+            var url = "https://diktoapi.appspot.com/api/v1/favorite";
+            console.log('data: ', data);
+            $.ajax({
+                url: url,
+                type:"POST",
+                data:JSON.stringify(data),
+                contentType:"application/json; charset=utf-8",
+                dataType:"json"
+            }).then(function(res){
+                alert('You added ' + sText + ' to your favorites!');
+            }).catch(function(err){
+                console.log(err);
+            });
+        } else {
+            alert('Please login before you can add to your favorites!');
         }
-    })
+    });
 };

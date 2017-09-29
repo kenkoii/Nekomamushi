@@ -123,12 +123,14 @@ function AppViewModel(data) {
 
     self.goToWordList = function() {
         backAudio.play();
+        var id = getParameterByName('id');
+        var password = getParameterByName('password');
         if(self.user()){
             if(!self.user().error) {
                 var getUrl = window.location;
                 var baseUrl = getUrl .protocol + "//" + getUrl.host + "/" + getUrl.pathname.split('/')[0];
                 // var url = baseUrl + 'list/' + self.user().id + '/' + self.user().password;
-                var url = baseUrl + 'popup.html';
+                var url = baseUrl + "list.html?id=" + id + "&password=" + password;
                 console.log('link: ', url)
                 window.location.href = url;
             }
@@ -259,18 +261,6 @@ function AppViewModel(data) {
     }
 }
 
-function getParameterByName( name ){
-    var regexS = "[\\?&]"+name+"=([^&#]*)", 
-  regex = new RegExp( regexS ),
-  results = regex.exec( window.location.search );
-  if( results == null ){
-    return "";
-  } else{
-    return decodeURIComponent(results[1].replace(/\+/g, " "));
-  }
-}
-
-
 $(document).ready(function(){
     var id = getParameterByName('id');
     var password = getParameterByName('password');
@@ -284,8 +274,22 @@ $(document).ready(function(){
         var userObject = JSON.parse(user[0]);
         console.log(wordObject)
         console.log(userObject)
+        chrome.storage.sync.set({"user": userObject}, function(){
+            console.log("User data saved to storage.");
+        })
+        chrome.storage.sync.set({[word]: wordObject}, function(){
+            console.log("Word data saved to storage.");
+        })
         ko.applyBindings(new AppViewModel({word: wordObject, 
                                            user: userObject}));
+    }).catch(function(err,err){
+        chrome.storage.sync.get(function(result) {
+            console.log("User data loaded from storage.");
+            console.log(result.user);
+            console.log(result[word]);
+            ko.applyBindings(new AppViewModel({word: result[word], 
+                user: result.user}));
+        });
     });
     // $.ajax(API_URL + 'words/'+ word)
     //     .then(function(res){
@@ -297,3 +301,15 @@ $(document).ready(function(){
     //         console.log(err);
     //     });
 });
+
+
+function getParameterByName( name ){
+    var regexS = "[\\?&]"+name+"=([^&#]*)", 
+  regex = new RegExp( regexS ),
+  results = regex.exec( window.location.search );
+  if( results == null ){
+    return "";
+  } else{
+    return decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
+}

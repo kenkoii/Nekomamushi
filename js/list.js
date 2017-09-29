@@ -9,6 +9,7 @@ const MICROSOFT_REQUEST_HEADER = {  'Content-Type': 'application/json',
 // var baseUrl = getUrl .protocol + "//" + getUrl.host + "/" + getUrl.pathname.split('/')[0];
 var baseUrl = 'https://diktoapi.appspot.com/'
 const API_URL = baseUrl + 'api/v1/';
+var internetStatus = 'online';
 
 
 function AppViewModel(data) { 
@@ -22,10 +23,14 @@ function AppViewModel(data) {
     self.selected = ko.observable("favorites");
     self.isPromptFave = ko.observable(false);
     self.selectedWord = ko.observable({});
+    self.connection = ko.observable(internetStatus);
     checkUser();
 
     self.user.subscribe((user) => {
         console.log("Change Detected");
+        chrome.storage.sync.set({"user": user}, function(){
+            console.log("User data saved to storage.");
+        });
         self.updateUser();
     });
 
@@ -124,6 +129,12 @@ function AppViewModel(data) {
         backAudio.play();
         // location.href = 'uniwebview://close';
         window.close();
+    }
+
+    self.logout = function() {
+        chrome.storage.sync.remove("loggedInUser", function(){
+            location.href = "popup.html";
+        });
     }
 
     self.switchWindow = function() {
@@ -264,7 +275,23 @@ function WordViewModel(favorite, parent) {
 
     self.wordObj = ko.observable({});
     
-    getWord(self.word);
+    getWord(self.word)
+        .then(function(data) {
+            console.log(data);
+            if(data.translation === ''){
+                getTranslation(data.text);
+            }
+            chrome.storage.local.set({ [self.word] : data});
+            self.wordObj(data);
+        })
+        .catch(function(err){
+            console.log(err);
+            chrome.storage.local.get(self.word, function(result){
+                // result
+                console.log(result[self.word]);
+                self.wordObj(result[self.word]);
+            });
+        });
 
     // Computed data
     self.formattedPronunciation = ko.computed(function() {
@@ -381,13 +408,19 @@ function WordViewModel(favorite, parent) {
 
     function getWord(word) {
         // TODO: custom request(only request for needed info)
-        $.getJSON(API_URL + 'words/' + word, function(data) {
-            console.log(data);
-            if(data.translation === ''){
-                getTranslation(word);
-            }
-            self.wordObj(data);
+        return $.ajax({
+            url: API_URL + 'words/' + word,
+            method: 'get',
+            dataType: 'json'
         });
+        
+        // $.getJSON(API_URL + 'words/' + word, function(data) {
+        //     console.log(data);
+        //     if(data.translation === ''){
+        //         getTranslation(word);
+        //     }
+        //     self.wordObj(data);
+        // });
     }
 
     function updateWord(word) {
@@ -481,13 +514,49 @@ function WordViewModel(favorite, parent) {
         }
     } )();
 
+    var id = getParameterByName('id');
+    var password = getParameterByName('password');
 
     // Activates knockout.js
-    $.get("https://diktoapi.appspot.com/api/v1/users/20001/3829")
+    $.get("https://diktoapi.appspot.com/api/v1/users/"+ id +"/" + password)
         .then(function(res){
-            ko.applyBindings(new AppViewModel(JSON.parse(res)));
+            var user = JSON.parse(res);
+            chrome.storage.sync.set({[id]: user}, function(){
+                console.log("User data saved to storage.");
+            })
+            ko.applyBindings(new AppViewModel(user));
         })
         .catch(function(err){
             console.log(err)
+            chrome.storage.sync.get([id], function(result) {
+                console.log("User data loaded from storage.");
+                console.log(result[id]);
+                ko.applyBindings(new AppViewModel(result[id]));
+            });
         });
 }( this, ko ) );
+
+function logStatusOnline(){
+    console.log("Online!");
+    internetStatus = 'online';
+}
+
+function logStatusOffline(){
+    console.log("Offline");
+    internetStatus = 'offline';
+}
+
+window.addEventListener('online', logStatusOnline);
+window.addEventListener('offline', logStatusOffline);
+
+
+function getParameterByName( name ){
+    var regexS = "[\\?&]"+name+"=([^&#]*)", 
+  regex = new RegExp( regexS ),
+  results = regex.exec( window.location.search );
+  if( results == null ){
+    return "";
+  } else{
+    return decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
+}
